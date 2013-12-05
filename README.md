@@ -18,6 +18,9 @@ console.log(rpn);
 Please note that this module has not yet been thoroughly tested,
 please report any issues.
 
+If you need a script for evaluating the output of this package:
+https://github.com/leon-vv/node-sy-reader
+
 License
 -------------------
 MIT
