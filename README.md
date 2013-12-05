@@ -1,6 +1,10 @@
 Usage
 ------------------
 
+```
+npm install shunting-yard
+```
+
 ```JavaScript
 var sy = require("shunting-yard");
 
