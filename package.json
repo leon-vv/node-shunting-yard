@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "description": "Module for converting infix notation to rpn",
   "main": "shunting-yard.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leon-vv/node-shunting-yard.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
