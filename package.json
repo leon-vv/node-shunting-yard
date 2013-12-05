@@ -1,0 +1,19 @@
+{
+  "name": "shunting-yard",
+  "version": "0.0.1",
+  "description": "Module for converting infix notation to rpn",
+  "main": "shunting-yard.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "shunting",
+    "yard",
+    "infix",
+    "rpn",
+    "notation",
+    "math"
+  ],
+  "author": "Léon van Velzen",
+  "license": "MIT"
+}
