@@ -1,6 +1,6 @@
 {
   "name": "shunting-yard",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Module for converting infix notation to rpn",
   "main": "shunting-yard.js",
   "repository": {
