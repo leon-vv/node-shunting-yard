@@ -185,16 +185,56 @@ var shuntingYard = function(tokens) {
 			
 			operatorStack.push(token);
 		}
-		else throw "Error: shunting yard called with unknown toekn at position: " + i;
+		else throw "Error: shunting yard called with unknown token at position: " + i;
 	}	
 	// Copy the remaining opr to the output.
 	Array.prototype.push.apply(output, operatorStack);
 	
+	output.read = function(){return evaluate(this)};
+
 	return output;
 };
 
-module.exports = function(input) {return shuntingYard(Token.readRecursive(input))};
+// Operator actions.
+var opa = {
+	"+": function(a, b) {return a + b},
+	"-": function(a, b) {return a - b},
+	"*": function(a, b) {return a * b},
+	"/": function(a, b) {return a / b},
+	"%": function(a, b) {return a % b}
+}; 
 
+var evaluate =  function(tokens) {
+
+	var stack = [];
+
+	for(var i = 0; i < tokens.length; i++) {
+		
+		var token = tokens[i];
+		var type = token.type;
+		var value = token.value;
+		
+		if(type == "number") stack.push(value);
+		else if(type == "operator") {
+		
+			if(stack.length < 2) throw "Error, only " + stack.length + " arguments supplied for operator: " + value;
+			else {
+			
+				var b = stack.pop();
+				var a = stack.pop();
+				
+				stack.push(opa[value](a, b));
+			}
+		}
+		else if(token instanceof Array) stack.push(evaluate(token));
+	}
+		
+	return stack[0];
+}
+
+
+
+module.exports = function(input) {return shuntingYard(Token.readRecursive(input))};
 
 
 
