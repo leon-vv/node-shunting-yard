@@ -8,17 +8,14 @@ npm install shunting-yard
 ```JavaScript
 var sy = require("shunting-yard");
 
-// Multidimensional array of numbers and operators
-var rpn = sy("-5+(3*3)");
-
-// 4
-var result = rpn.read();
+// 8
+var result = sy.compute("2 * (2 * (1 + 1))");
 
 ```
+See test.js for the usage of readNumber, readToken, readTokens, shuntingYard and evaluatePostfix.
 
-Please note that this module has not yet been thoroughly tested,
-please report any issues.
+Feel free to report any issues :)
 
 License
 -------------------
-MIT
+GPL3
