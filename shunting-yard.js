@@ -1,202 +1,163 @@
+
 var assert = require("assert");
 
-// If you come here to read the source code, jump down to main!
-
 // All available operators.
+// Maps to precedence
 var opr = {
-	"+": new Operator("+", 1, 2),
-	"-": new Operator("-", 1, 2),
-	"*": new Operator("*", 2, 2),
-	"/": new Operator("/", 2, 2),
-	"%": new Operator("%", 2, 2),
+	"+": 1,
+	"-": 1,
+	"*": 2,
+	"/": 2,
+	"%": 2,
 };
 
-function Operator(operator, precedence, noa) {
-
-	this.operator = operator;
-	
-	this.precedence = precedence;
-	
-	// Number of arguments.
-	this.noa = noa;
-} 
-
-Operator.prototype.smallerPrecedence = function(otherOperator) {
-
-	return this.precedence < otherOperator.precedence;
-};
-
-function Token(type, value, index, end) {
-
-	// Either operator or number.
-	this.type = type;
-	assert(type == "operator" || type == "number", "Illegal type value");
-
+var Token = function(value, type) {
 	this.value = value;
-	assert(value || value == 0, "Value is falsy: " + value);
-	
-	// Where in the input does the token start?
-	this.begin = index;
-	assert(!isNaN(index), "\"index\" Is not a number.");
-	
-	// Where does the token end?
-	this.end = end;
+	this.type = type;
+	assert(type == "number" ||
+		type == "operator" ||
+		type == "paren", "Invalid token");
 }
 
+// returns [number, index]
+var readNumber = function(str, index) {
 
-// The previous token is needed for correctly detecting unary operators.
-Token.read = function(input, index, previousToken) {
-
-	assert(typeof input == "string", "\"input\" should be a string.");
-	assert(!isNaN(index), "\"index\" should be a number.");
-	
+	var points_amount = 0;
 	var stack = [];
-	var isNumber = false;
-	
-	for(var i = index; i < input.length; i++){
-	
-		var s = input[i];
+	var i = index;
 
-		var op = opr[s];
-	
-		if(s == " ") {
-		
-			// White space is only allowed at the beginning,
-			// thus when the stack is still empty.
-			if(stack.length == 0) {
-			
-				index += 1;
-				continue;
-			}
-			else break;
+	for(; i < str.length; i++) {
+		var c = str[i];
+		if(!isNaN(parseInt(c)) || c == ".") {
+			stack.push(c);
 		}
-		else if(!isNaN(s)) {
-		
-			// It's a number.
-			stack.push(s);
-			isNumber = true;
+		else break;
+	}
+
+	var num = Number(stack.join(""));
+
+	if(isNaN(num)) {
+		// The points are messed up
+		return "Number cannot contain more than one point";
+	}
+
+	return [num, i];
+}
+
+// prev=true when the previous token was an operator
+// helps by detecting unary + and -
+// returns [token, index]
+var readToken = function(str, index, prev) {
+
+	var index = index || 0;
+	var prev = prev || false;
+
+	var returnToken;
+	var stack = [];
+
+	for(var i = index; i < str.length; i++) {
+
+		var c = str[i];
+
+		if(c == " ") continue;
+		else if(c == "(" || c == ")") {
+			returnToken = new Token(c, "paren");
+			i += 1;
 		}
-		else if(op) {
-		
-			var pto = (previousToken.type == "operator");
-			var slz = (stack.length == 0);	
-	
-			if(slz && !pto) {
-			
-				stack.push(s);
-				i += 1;
-				break;
-			}
-			else if(slz && pto) {
-			
-				// Unary + and unary -.
-				if(op.operator == "+" || op.operator == "-") {
-				
-					isNumber = true;
-					stack.push(s);
+		else if(c == "." || !isNaN(parseInt(c))) {
+			var rn = readNumber(str, i);
+			if(typeof rn == "string") return rn;
+			return [new Token(rn[0], "number"), rn[1]];
+		}
+		else if(opr[c]) {
+			// If previous token was an operator
+			// this opr need to be unary + or -
+			// and this token therefore should be a number
+			if(prev) {
+				if(c == "+") {
+					continue;
 				}
-				else throw "Error: double operator at position: " + i;
+				else if(c == "-") {
+					returnToken = readToken(str, i + 1, true);
+					returnToken.value *= -1;
+				}
+				else return "Illegal second operator at " + i;
 			}
-			else if(!slz) break;
-		}				
-		else if(s == "(") {
-		
-			// The stack can only be filled if an number is in it.
-			// Operators always break the loop instantly.
-			if(stack.length > 0) throw "Error: parentheses preceded by a non-operator.";
-
-			// Parentheses should just be returned as an array of tokens. 
-			// Watch out: a lot of recursion going on here.
-			// Basically what we do is:
-			// 	- Cut out everything between the parentheses.
-			//	- Use the Token.readRecursive function to read it out.
-			//	- Return the array of tokens.	
-			
-			return Token.readRecursive(input, i + 1);	
+			else {
+				returnToken = new Token(c, "operator");
+				i += 1;	
+			}
 		}
-		else if(s == ")") break;	
-		else throw "Illegal character at position: " + i;
-
+		else {
+			return "Illegal character at " + i;
+		}
+		
+		return [returnToken, i];
 	}
-	// console.log(isNumber, stack, index, i, input);
-		
-	// A new token should be made from the stack.
-	if(isNumber) return new Token("number", Number(stack.join("")), index, i);
-	// Mark end of stream.
-	else if(stack.length == 0) return false;
-	else return new Token("operator", stack[0], index, i);
-};
+}
 
-Token.readRecursive = function(input, index) {
+var readTokens = function(str) {
 
-	// This function should start reading "input" beginning at "index",
-	// returning an array of tokens.
-		
 	var tokens = [];
-	tokens.end = index || 0;
-	// We give the starting token a type of "operator" because if a - or + is detected,
-	// it should be handled as a unary + or an unary -.
-	var token = {type: "operator"};
+	var index = 0;
+	var lastIsOp = false;
 
-	while(token = Token.read(input, tokens.end, token)) {
-	
-		// Be aware: token can also be an array, if parentheses are detected.
-		// Little big hacky, but the end property should always point to the last elemnt + 1.
-		tokens.end = token.end;
-
-		tokens.push(token);
+	while(index < str.length) {
+		var rt = readToken(str, index, lastIsOp);
+		if(typeof rt == "string") return rt;
+		tokens.push(rt[0]);
+		index = rt[1];
+		lastIsOp = rt[0].type == "operator";
 	}
-	
-	tokens.end += 1;
-	
+
 	return tokens;
-};
+}
 
 var shuntingYard = function(tokens) {
 
-	// Now that the tokens are read, let the fun begin!
-	// Search "Shunting Yard Wikipedia" for a good explanation of this algorithm!	
-		
 	var output = [];
-	var operatorStack = [];
+	var stack = [];
 
 	for(var i = 0; i < tokens.length; i++) {
-	
-		var token = tokens[i];
+		var t = tokens[i];
+		if(t.type == "number") output.unshift(t);
+		else if(t.type == "operator") {
 		
-		// Arrays are handled as numbers, but their content is first put in rpn
-		if(token instanceof Array) output.push(shuntingYard(token)); 		
-		else if(token.type == "number") output.push(token);
-		else if(token.type == "operator") {
-
-			var opl = operatorStack.length;
-			var operator = opr[token.value];	
-			
-			for(var j = opl - 1; j > -1; j--) {
-			
-				var co = opr[operatorStack[j].value];
-
-				if(!co.smallerPrecedence(operator)) {
-				
-					output.push(operatorStack.pop());
-				}
+			while(stack.length && stack[0].type == "operator") {
+				if(opr[t.value] <= opr[stack[0].value])
+					output.unshift(stack.shift());
 				else break;
 			}
-			
-			operatorStack.push(token);
+			stack.unshift(t);
 		}
-		else throw "Error: shunting yard called with unknown token at position: " + i;
-	}	
-	// Copy the remaining opr to the output.
-	Array.prototype.push.apply(output, operatorStack);
-	
-	output.read = function(){return evaluate(this)};
+		else if(t.value == "(") stack.unshift(t);
+		else if(t.value == ")") {
 
-	return output;
-};
+			var found = false;
+			while(stack.length) {
+				var current = stack.shift();
+				if(current.value == "(") {
+					found = true;
+					break;
+				}
+				else output.unshift(current);
+			}
+			if(!found) return "Mismatched parentheses.";
+		}
+		else {
+			return "Unknown token type: " + t.type;
+		}
+	}
+	while(stack.length) {
+		if(stack[0].type == "paren") return "Mismatched parentheses.";
+		output.unshift(stack.shift());
+	}
+
+	return output.reverse();
+}
 
 // Operator actions.
-var opa = {
+var opfun = {
 	"+": function(a, b) {return a + b},
 	"-": function(a, b) {return a - b},
 	"*": function(a, b) {return a * b},
@@ -204,37 +165,40 @@ var opa = {
 	"%": function(a, b) {return a % b}
 }; 
 
-var evaluate =  function(tokens) {
-
+var evaluatePostfix = function(tokens) {
 	var stack = [];
+	
+	while(tokens.length) {
+		var t = tokens.shift();
 
-	for(var i = 0; i < tokens.length; i++) {
-		
-		var token = tokens[i];
-		var type = token.type;
-		var value = token.value;
-		
-		if(type == "number") stack.push(value);
-		else if(type == "operator") {
-		
-			if(stack.length < 2) throw "Error, only " + stack.length + " arguments supplied for operator: " + value;
-			else {
+		if(t.type == "number") stack.unshift(t);
+		else if(t.type == "operator") {
+			// Number of arguments is hardcoded
+			if(stack.length < 2) return "Invalid postfix expression.";
 			
-				var b = stack.pop();
-				var a = stack.pop();
-				
-				stack.push(opa[value](a, b));
-			}
+			var a = stack.shift().value;
+			var b = stack.shift().value;
+			stack.unshift(new Token(opfun[t.value](b, a), "number"));
 		}
-		else if(token instanceof Array) stack.push(evaluate(token));
 	}
-		
-	return stack[0];
+	
+	if(stack.length > 1) return "To many numbers supplied.";
+	return stack[0].value;	
 }
 
-
-
-module.exports = function(input) {return shuntingYard(Token.readRecursive(input))};
-
-
-
+module.exports = {
+	readNumber : readNumber,
+	readToken : readToken,
+	readTokens : readTokens,
+	shuntingYard : shuntingYard,
+	evaluatePostfix : evaluatePostfix,
+	compute : function(str) {
+		var tokens = readTokens(str);
+		if(typeof tokens == "string") return tokens;
+		var shunted = shuntingYard(tokens);
+		if(typeof shunted == "string") return shunted;
+		var result = evaluatePostfix(shunted);
+		if(typeof result == "string") return result;
+		return result
+	}
+};
