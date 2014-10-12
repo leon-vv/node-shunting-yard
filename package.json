@@ -8,7 +8,7 @@
     "url": "https://github.com/leon-vv/node-shunting-yard.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "nodejs ./test.js"
   },
   "keywords": [
     "shunting",
@@ -19,5 +19,5 @@
     "math"
   ],
   "author": "Léon van Velzen",
-  "license": "MIT"
+  "license": "GPL3"
 }
