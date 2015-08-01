@@ -6,7 +6,7 @@ var assert = require("assert");
 var opr = {
 	"+": 1,
 	"-": 1,
-	"#": 1,
+	"#": 3,
 	"*": 2,
 	"/": 2,
 	"%": 2,

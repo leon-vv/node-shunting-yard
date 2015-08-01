@@ -94,6 +94,10 @@ var arraysEqual = function(a1, a2) {
 
 var problems = {
 	"-10+5": -5,
+	"-5*10": -50,
+	"15 * -2": -30,
+	"30*-(1+2)":-90,
+	"5-(5-5)":5,
 	"8 + 3": 11,
 	"100 % 3      + 1": 2,
 	"100*100*(1/100)": 100,
@@ -106,6 +110,14 @@ var problems = {
 		if(!problems.hasOwnProperty(p)) continue;
 		
 		var res = sy.compute(p);
-		assert(res == problems[p], p + " evaluates to " + res);
+
+		if(res != problems[p]) {
+			var tokens, shunted;
+			console.error(p, " failed: ", sy.compute(p));
+			console.error("readTokens: ", tokens = sy.readTokens(p));
+			console.error("shunted: ", shunted = sy.shuntingYard(tokens));
+			console.error("evaluated: ", sy.evaluatePostfix(shunted));
+			return;
+		}
 	}
 })();
